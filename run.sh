@@ -1,0 +1,1 @@
+docker run --rm -v $(pwd):/app whisper-large-cpu
