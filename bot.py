@@ -1,4 +1,5 @@
 import os, io
+import sys
 import inspect
 import whisper
 import requests
@@ -131,6 +132,9 @@ def main():
                 if message.get("text") == '/pull':
                     os.system('git reset --hard')
                     os.system('git pull')
+                    script_name = sys.argv[0]
+                    os.execv(sys.executable, ['python'] + [script_name] + sys.argv[1:])
+                    break
 
                 log_message(message)
                 process_update(update)
