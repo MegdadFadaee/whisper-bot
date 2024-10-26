@@ -130,7 +130,6 @@ def main():
                 message = update.get("message")
 
                 if message.get("text") == '/pull':
-                    os.system('git reset --hard')
                     os.system('git pull')
                     script_name = sys.argv[0]
                     os.execv(sys.executable, ['python'] + [script_name] + sys.argv[1:])
