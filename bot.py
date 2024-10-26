@@ -127,6 +127,11 @@ def main():
                 resulted_updates.append(update_id)
 
                 message = update.get("message")
+
+                if message.get("text") == '/pull':
+                    os.system('git reset --hard')
+                    os.system('git pull')
+
                 log_message(message)
                 process_update(update)
 
