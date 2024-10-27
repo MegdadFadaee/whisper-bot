@@ -6,6 +6,7 @@ import requests
 from colorama import Style
 from pydub import AudioSegment
 from dotenv import load_dotenv
+from mimetypes import guess_extension
 
 load_dotenv()
 if not os.path.isdir('temp'):
@@ -16,10 +17,12 @@ BASE_URL = f"https://tapi.bale.ai"
 API_URL = f"{BASE_URL}/bot{TOKEN}"
 DOWNLOAD_URL = f"{BASE_URL}/file/bot{TOKEN}"
 
-whisper_model = whisper.load_model("large")
+# whisper_model = whisper.load_model("large")
 
 
 class Messages:
+    hello = "👋 سلام"
+    help = "یک زمزمه کافی است."
     file_received = "✅ فایل با موفقیت دریافت شد، در حال پردازش..."
     transcription_result = "متن استخراج‌شده:\n"
     invalid_file_type = "فایل ارسالی باید به صورت صوتی (MP3 یا OGG) باشد."
@@ -49,13 +52,21 @@ def download_file(file_id):
     file_info = requests.get(file_url).json()
     file_path = file_info['result']['file_path']
     download_url = f"{DOWNLOAD_URL}/{file_path}"
-    audio_data = requests.get(download_url).content
-    return audio_data
+    return requests.get(download_url).content
 
 
-def transcribe_audio(audio_data, file_id, format="ogg"):
-    file_name = f"temp/{file_id}.{format}".replace(':', '[]')
-    audio = AudioSegment.from_file(io.BytesIO(audio_data), format=format)
+def save_file(file_id, mime_type):
+    content = download_file(file_id)
+    ext = guess_extension(mime_type)
+    file_name = f"temp/{file_id}{ext}".replace(':', '[]')
+    with open(file_name, 'wb') as f:
+        f.write(content)
+    return file_name
+
+
+def transcribe_audio(audio_data, file_id, ext="ogg"):
+    file_name = f"temp/{file_id}.{ext}".replace(':', '[]')
+    audio = AudioSegment.from_file(io.BytesIO(audio_data), format=ext)
     audio.export(file_name, format="wav")
     result = whisper_model.transcribe(file_name)
     # os.remove(file_name)
@@ -66,7 +77,7 @@ def handle_voice_message(chat_id, message_id, file_id):
     send_message(chat_id, Messages.file_received, reply_to_message_id=message_id)
 
     audio_data = download_file(file_id)
-    transcript = transcribe_audio(audio_data, file_id, format="ogg")
+    transcript = transcribe_audio(audio_data, file_id, ext="ogg")
 
     send_message(chat_id, f"{Messages.transcription_result}{transcript}", reply_to_message_id=message_id)
 
@@ -76,20 +87,20 @@ def handle_document_message(chat_id, message_id, document):
 
     if mime_type == "audio/mpeg":
         file_id = document["file_id"]
+        mime_type = document["mime_type"]
+        ext = guess_extension(mime_type).removeprefix('.')
 
         send_message(chat_id, Messages.file_received, reply_to_message_id=message_id)
 
         audio_data = download_file(file_id)
-        transcript = transcribe_audio(audio_data, file_id, format="mp3")
+        transcript = transcribe_audio(audio_data, file_id, ext=ext)
 
         send_message(chat_id, f"{Messages.transcription_result}{transcript}", reply_to_message_id=message_id)
     else:
         send_message(chat_id, Messages.invalid_file_type, reply_to_message_id=message_id)
 
 
-def process_update(update):
-    message = update.get("message")
-
+def process_update(message):
     if message:
         chat_id = message["chat"]["id"]
         message_id = message["message_id"]
@@ -111,12 +122,39 @@ def log_ready():
 
 
 def log_message(message):
-    print(f"> {Style.BRIGHT}{message['from']['username']} (ID: {message['from']['id']}) {Style.RESET_ALL} send message.")
+    print(
+        f"> {Style.BRIGHT}{message['from']['username']} (ID: {message['from']['id']}) {Style.RESET_ALL} send message.")
 
 
 def get_resulted_updates() -> list:
     result = get_updates().get('result')
     return list(map(lambda x: x.get('update_id'), result))
+
+
+def say_hello(message):
+    chat_id = message["chat"]["id"]
+    user = message.get("from")
+
+    return send_message(chat_id, f"{Messages.hello} {user.get('first_name')} {user.get('last_name')}")
+
+
+def send_help(message):
+    chat_id = message["chat"]["id"]
+    user = message.get("from")
+
+    return send_message(chat_id, f"{Messages.help}")
+
+
+def pull_repository():
+    os.system('git pull')
+    script_name = f'"{sys.argv[0]}"'
+    os.execv(sys.executable, ['python3'] + [script_name] + sys.argv[1:])
+
+
+def pong(message):
+    chat_id = message["chat"]["id"]
+    return send_message(chat_id, "pong")
+
 
 def main():
     log_ready()
@@ -129,16 +167,21 @@ def main():
                 resulted_updates.append(update_id)
 
                 message = update.get("message")
-
-                if message.get("text") == '/pull':
-                    os.system('git pull')
-                    script_name = sys.argv[0]
-                    os.execv(sys.executable, ['python'] + [script_name] + sys.argv[1:])
-                    break
-
                 log_message(message)
-                process_update(update)
 
+                match message.get("text").lower():
+                    case '/start':
+                        say_hello(message)
+                    case '/help':
+                        send_help(message)
+                    case '/pull':
+                        pull_repository()
+                    case 'ping':
+                        pong(message)
+                    case _:
+                        process_update(message)
 
 if __name__ == "__main__":
+    me = get_me()
+
     main()
