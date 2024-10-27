@@ -103,6 +103,7 @@ def process_update(update):
 
 
 def log_ready():
+    os.system('clear' or 'cls')
     client = get_me()
     print(inspect.cleandoc(f"""
         Logged in as {client['username']} (ID: {client['id']})
