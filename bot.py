@@ -17,7 +17,7 @@ BASE_URL = f"https://tapi.bale.ai"
 API_URL = f"{BASE_URL}/bot{TOKEN}"
 DOWNLOAD_URL = f"{BASE_URL}/file/bot{TOKEN}"
 
-# whisper_model = whisper.load_model("large")
+whisper_model = whisper.load_model("large")
 
 
 class Messages:
