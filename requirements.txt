@@ -14,6 +14,7 @@ networkx==3.4.2
 numba==0.60.0
 numpy==2.0.2
 openai-whisper==20240930
+pillow==10.2.0
 pydub==0.25.1
 python-dotenv==1.0.1
 regex==2024.9.11
@@ -21,7 +22,9 @@ requests==2.32.3
 setuptools==75.2.0
 sympy==1.13.1
 tiktoken==0.8.0
-torch==2.5.0
+torch==2.5.1+cu124
+torchaudio==2.5.1+cu124
+torchvision==0.20.1+cu124
 tqdm==4.66.5
 typing_extensions==4.12.2
 urllib3==2.2.3

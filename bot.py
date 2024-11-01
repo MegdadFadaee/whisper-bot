@@ -1,5 +1,6 @@
 import os, io
 import sys
+import asyncio
 import inspect
 import whisper
 import requests
@@ -85,10 +86,13 @@ def handle_voice_message(chat_id, message_id, file_id):
 def handle_document_message(chat_id, message_id, document):
     mime_type = document.get("mime_type", "")
 
-    if mime_type == "audio/mpeg":
+    if "audio/" in mime_type:
         file_id = document["file_id"]
         mime_type = document["mime_type"]
-        ext = guess_extension(mime_type).removeprefix('.')
+        if mime_type == "audio/mp3":
+            ext = 'mp3'
+        else:
+            ext = guess_extension(mime_type).removeprefix('.')
 
         send_message(chat_id, Messages.file_received, reply_to_message_id=message_id)
 
@@ -156,7 +160,7 @@ def pong(message):
     return send_message(chat_id, "pong")
 
 
-def main():
+async def main():
     log_ready()
     resulted_updates = get_resulted_updates()
     while True:
@@ -169,8 +173,12 @@ def main():
                 message = update.get("message")
                 log_message(message)
 
-                match message.get("text").lower():
+                match message.get("text", '').lower():
                     case '/start':
+                        say_hello(message)
+                    case '/hi':
+                        say_hello(message)
+                    case '/hello':
                         say_hello(message)
                     case '/help':
                         send_help(message)
@@ -181,7 +189,7 @@ def main():
                     case _:
                         process_update(message)
 
+
 if __name__ == "__main__":
     me = get_me()
-
-    main()
+    asyncio.run(main())
